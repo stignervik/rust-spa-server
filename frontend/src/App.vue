@@ -1,31 +1,85 @@
-<script setup lang="ts">
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+  <v-app>
+    <v-app-bar app color="info" dark>
+      <div class="d-flex align-center">
+    <!--<v-img
+      :width="70"
+      :src="iconPath"
+      cover
+      class="ml-4"
+    ></v-img> -->
+        <h3 class="ml-4">Rust SPA Server</h3>
+      </div>
+      <v-spacer></v-spacer>
+      <v-btn :to="{ path: '/' }">
+        <span class="mr-1">Units</span>
+        <v-icon>mdi-ballot-outline</v-icon>
+      </v-btn>
+      <v-btn :to="{ path: '/about' }">
+        <span class="mr-1">About</span>
+        <v-icon>mdi-information-outline</v-icon>
+      </v-btn>
+      <v-btn :to="{ path: '/user' }">
+        <span class="mr-1">User</span>
+        <v-icon>mdi-account-outline</v-icon>
+      </v-btn>
+    </v-app-bar>
+    <v-main class="main-view">
+      <v-container fluid>
+        <router-view/>
+      </v-container>
+    </v-main>
+    <v-footer app color="info">
+      <h4 class="ml-2">Rust Embed</h4>
+      <v-spacer></v-spacer>
+      <v-btn
+        href="https://www.rust-lang.org/"
+        target="_blank"
+        variant="text"
+      >
+        <span class="mr-2">Rust</span>
+        <v-icon>mdi-open-in-new</v-icon>
+      </v-btn>
+  </v-footer>
+  </v-app>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+<script lang="ts">
+  import { defineComponent } from 'vue'
+  // import { useAuthStore } from '../src/stores/auth'
+  // import appIcon from './assets/autronica_logo.png'
+
+    // const store = useAuthStore()
+    /*
+    function logout() {
+      console.log("Logout...")
+      store.loginState = false
+      location.reload()
+    }
+    */
+  export default defineComponent({
+    name: 'App',
+
+    components: {
+    },
+
+    data () {
+      return {
+        // iconPath: appIcon
+      }
+    },
+  })
+</script>
+
+
+<style lang="scss" scoped>
+  .main-view {
+    background-color: #e3f2fd;
+    display: flex;
+    flex: 1;
+  }
+
+  .snackbar {
+    margin-top: 50px;
+  }
+  </style>
