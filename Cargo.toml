@@ -1,5 +1,5 @@
 [package]
-name = "rust-spa-server"
+name = "rust_spa_server"
 version = "0.1.0"
 edition = "2021"
 

@@ -3,20 +3,69 @@ use spa_rs::SpaServer;
 use spa_rs::routing::{get, Router};
 use anyhow::Result;
 
+mod version;
+mod unit;
+
+use crate::unit::unit::Unit;
+
+
 spa_server_root!("frontend/dist");           // specific your SPA dist file location
 
 #[tokio::main]
 async fn main() -> Result<()> {
+
+    version::add_two(2);
+    let unit = Unit::new(String::from("1"), String::from("Unit1"), String::from("Unit"), String::from("Unit"));
+    print!("Unit id: {0}", unit.id());
+    /*
+    id: String::from("1"),
+      name: String::from("1"),
+      unitClass: String::from("unit"),
+      unitFunc: String::from("unit"),
+    };
+    */
+    // print!("Unit {0}", unit.id());
+
     let data = String::new();           // server context can be acccess by [axum::Extension]
     let mut srv = SpaServer::new();
+
+
+    /*
+    // build our application with a route
+    let app = Router::new()
+        // `GET /` goes to `root`
+        .route("/", get(test))
+        // `POST /users` goes to `create_user`
+        .route("/users", get(create_user));
+    */
+
+    let router = Router::new()
+    .route("/get", get(test))
+    .route("/units", get(units));
+
     srv.port(3000)
         .data(data)
         .static_path("/png", "web")     // static file generated in runtime
-        .route("/api", Router::new()
-            .route("/get", get(|| async { "get works" })
-        )
-    );
+        .route("/api/v1", router);
+        // .route("/api/v1", Router::new().route("/get", get(test))
+             // .route("/units", get(units))
+             // .route("/units", get(|| async { "get units" })
+             // .route("/api/v1", Router::new()
+        //     .route("/units", get(|| async { "get units..." })
+        // )
+    //);
     srv.run(spa_server_root!()).await?;
+
+
+    async fn test() -> String {
+      let val = String::from("Hello world");
+      val
+    }
+
+    async fn units() -> String {
+      let val = String::from("Units");
+      val
+    }
 
     Ok(())
 }
