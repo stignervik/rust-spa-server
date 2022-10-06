@@ -1,188 +1,235 @@
+use anyhow::Result;
+use spa_rs::routing::{get, Router};
 use spa_rs::spa_server_root;
 use spa_rs::SpaServer;
-use spa_rs::routing::{get, Router};
-use anyhow::Result;
 
-mod version;
 mod unit;
+mod units;
+mod version;
 
 use crate::unit::unit::Unit;
+use crate::units::Units;
 
+/// See file book.rs, which defines the `Book` struct.
+mod book;
+use crate::book::Book;
 
-spa_server_root!("frontend/dist");           // specific your SPA dist file location
+/// See file data.rs, which defines the DATA global variable.
+mod data;
+use crate::data::DATA;
+use crate::data::UNIT_STORE;
+
+/// Use Thread for spawning a thread e.g. to acquire our crate::DATA mutex lock.
+use std::thread;
+
+spa_server_root!("frontend/dist"); // specific your SPA dist file location
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mut units = Units::new().clone();
+    let mut _numlist: Vec<i32>;
 
-    version::add_two(2);
-    let unit = Unit::new(String::from("1"), String::from("Unit1"), String::from("Unit"), String::from("Unit"));
-    print!("Unit id: {0}", unit.id());
-    /*
-    id: String::from("1"),
-      name: String::from("1"),
-      unitClass: String::from("unit"),
-      unitFunc: String::from("unit"),
-    };
-    */
-    // print!("Unit {0}", unit.id());
+    let unit = Unit::new(
+        String::from("1"),
+        String::from("Unit1"),
+        String::from("Unit"),
+        String::from("Unit"),
+    );
+    unit.id();
 
-    let data = String::new();           // server context can be acccess by [axum::Extension]
+    units.push(unit);
+    units.length();
+
+    let data = String::new(); // server context can be acccess by [axum::Extension]
     let mut srv = SpaServer::new();
 
 
-    /*
-    // build our application with a route
-    let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/", get(test))
-        // `POST /users` goes to `create_user`
-        .route("/users", get(create_user));
-    */
+    let createunit = || async {
+        let _unit = Unit::new(
+            String::from("1"),
+            String::from("Unit1"),
+            String::from("Unit"),
+            String::from("Unit"),
+        );
+        // units.push(unit);
+
+        // Units::typeofcol();
+        // units.push(unit);
+    };
 
     let router = Router::new()
-    .route("/get", get(test))
-    .route("/units", get(units));
+        .route("/get", get(test))
+        .route("/units", get(get_units))
+        .route("/createunit", get(createunit))
+        .route("/books", get(get_books).put(put_books))
+        .route("/books/:id", get(get_books_id).delete(delete_books_id))
+        .route(
+            "/books/:id/form",
+            get(get_books_id_form).post(post_books_id_form),
+        );
 
-    srv.port(3000)
+    const PORT: u16 = 3000;
+    println!("Starting server on port {}", PORT);
+    srv.port(PORT)
         .data(data)
-        .static_path("/png", "web")     // static file generated in runtime
+        .static_path("/png", "web") // static file generated in runtime
         .route("/api/v1", router);
-        // .route("/api/v1", Router::new().route("/get", get(test))
-             // .route("/units", get(units))
-             // .route("/units", get(|| async { "get units" })
-             // .route("/api/v1", Router::new()
-        //     .route("/units", get(|| async { "get units..." })
-        // )
-    //);
     srv.run(spa_server_root!()).await?;
 
-
     async fn test() -> String {
-      let val = String::from("Hello world");
-      val
+        let val = String::from("Hello world");
+        val
     }
 
-    async fn units() -> String {
-      let val = String::from("Units");
-      val
+    async fn unitsstr() -> String {
+        let val = String::from("Units");
+        val
     }
 
     Ok(())
 }
 
-
-
-
-/*
-use axum::{
-    body::{boxed, Full},
-    handler::Handler,
-    http::{header, StatusCode, Uri},
-    response::Response,
-    routing::Router,
-  };
-  use rust_embed::RustEmbed;
-  use std::net::SocketAddr;
-
-  static INDEX_HTML: &str = "index.html";
-
-  #[derive(RustEmbed)]
-  #[folder = "examples/axum-spa/assets/"]
-  struct Assets;
-
-  #[tokio::main]
-  async fn main() {
-    let app = Router::new().fallback(static_handler.into_service());
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
-  }
-
-  async fn static_handler(uri: Uri) -> Response {
-    let path = uri.path().trim_start_matches('/');
-
-    if path.is_empty() || path == INDEX_HTML {
-      return index_html().await;
-    }
-
-    match Assets::get(path) {
-      Some(content) => {
-        let body = boxed(Full::from(content.data));
-        let mime = mime_guess::from_path(path).first_or_octet_stream();
-
-        Response::builder().header(header::CONTENT_TYPE, mime.as_ref()).body(body).unwrap()
-      }
-      None => {
-        if path.contains('.') {
-          return not_found().await;
-        }
-
-        index_html().await
-      }
-    }
-  }
-
-  async fn index_html() -> Response {
-    match Assets::get(INDEX_HTML) {
-      Some(content) => {
-        let body = boxed(Full::from(content.data));
-
-        Response::builder().header(header::CONTENT_TYPE, "text/html").body(body).unwrap()
-      }
-      None => not_found().await,
-    }
-  }
-
-  async fn not_found() -> Response {
-    Response::builder().status(StatusCode::NOT_FOUND).body(boxed(Full::from("404"))).unwrap()
-  }
-*/
-
-/*
-// use ferris_says::say; // from the previous step
-// use std::io::{stdout, BufWriter};
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
-
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+/// To access data, create a thread, spawn it, then get the lock.
+/// When you're done, then join the thread with its parent thread.
+#[allow(dead_code)]
+async fn print_data() {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        println!("data: {:?}", data);
     })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
-
-    // https://www.youtube.com/watch?v=uYhLWN86V48&t=23s
-    // https://github.com/tokio-rs/axum
-
+    .join()
+    .unwrap()
 }
-*/
 
-/*
-fn main() {
-    let stdout = stdout();
-    let message = String::from("Hello fellow Rustaceans!");
-    let width = message.chars().count();
-
-    let mut writer = BufWriter::new(stdout.lock());
-    say(message.as_bytes(), width, &mut writer).unwrap();
+/// axum handler for "GET /books" which responds with a resource page.
+/// This demo uses our DATA; a production app could use a database.
+/// This demo must clone the DATA in order to sort items by title.
+pub async fn get_books() -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        let mut books = data.values().collect::<Vec<_>>().clone();
+        books.sort_by(|a, b| a.title.cmp(&b.title));
+        books
+            .iter()
+            .map(|&book| format!("<p>{}</p>\n", &book))
+            .collect::<String>()
+    })
+    .join()
+    .unwrap()
+    .into()
 }
-*/
+
+/// axum handler for "PUT /books" which creates a new book resource.
+/// This demo shows how axum can extract JSON data into a Book struct.
+pub async fn put_books(
+    axum::extract::Json(book): axum::extract::Json<Book>,
+) -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let mut data = DATA.lock().unwrap();
+        data.insert(book.id, book.clone());
+        format!("Put book: {}", &book)
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+/// axum handler for "GET /books/:id" which responds with one resource HTML page.
+/// This demo app uses our crate::DATA variable, and iterates on it to find the id.
+pub async fn get_books_id(
+    axum::extract::Path(id): axum::extract::Path<u32>,
+) -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        match data.get(&id) {
+            Some(book) => format!("<p>{}</p>\n", &book),
+            None => format!("<p>Book id {} not found</p>", id),
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+/// axum handler for "DELETE /books/:id" which destroys a resource.
+/// This demo extracts an id, then mutates the book in the DATA store.
+pub async fn delete_books_id(
+    axum::extract::Path(id): axum::extract::Path<u32>,
+) -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let mut data = DATA.lock().unwrap();
+        if data.contains_key(&id) {
+            data.remove(&id);
+            format!("Delete book id: {}", &id)
+        } else {
+            format!("Book id not found: {}", &id)
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+/// axum handler for "GET /books/:id/form" which responds with a form.
+/// This demo shows how to write a typical HTML form with input fields.
+pub async fn get_books_id_form(
+    axum::extract::Path(id): axum::extract::Path<u32>,
+) -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        match data.get(&id) {
+            Some(book) => format!(
+                concat!(
+                    "<form method=\"post\" action=\"/books/{}/form\">\n",
+                    "<input type=\"hidden\" name=\"id\" value=\"{}\">\n",
+                    "<p><input name=\"title\" value=\"{}\"></p>\n",
+                    "<p><input name=\"author\" value=\"{}\"></p>\n",
+                    "<input type=\"submit\" value=\"Save\">\n",
+                    "</form>\n"
+                ),
+                &book.id, &book.id, &book.title, &book.author
+            ),
+            None => format!("<p>Book id {} not found</p>", id),
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+/// axum handler for "POST /books/:id/form" which submits an HTML form.
+/// This demo shows how to do a form submission then update a resource.
+pub async fn post_books_id_form(form: axum::extract::Form<Book>) -> axum::response::Html<String> {
+    let new_book: Book = form.0;
+    thread::spawn(move || {
+        let mut data = DATA.lock().unwrap();
+        if data.contains_key(&new_book.id) {
+            data.insert(new_book.id, new_book.clone());
+            format!("Post book: {}", &new_book)
+        } else {
+            format!("Book id not found: {}", &new_book.id)
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+/// axum handler for "GET /units" which responds with a resource page.
+/// This demo uses our UNIT_STORE; a production app could use a database.
+/// This demo must clone the UNIT_STORE in order to sort items by title.
+pub async fn get_units() -> axum::response::Html<String> {
+    thread::spawn(move || {
+        let data = UNIT_STORE.lock().unwrap();
+        let mut units = data.values().collect::<Vec<_>>().clone();
+        units.sort_by(|a, b| a.id.cmp(&b.id));
+        units
+            .iter()
+            .map(|&unit| format!("<p>{}</p>\n", &unit))
+            .collect::<String>()
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+

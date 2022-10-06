@@ -27,5 +27,8 @@
 
     const resUnits = await http.get('/units');
     console.log(`Response: ${resUnits.data}`)
+
+    const resBooks = await http.get('/books');
+    console.log(`Response: ${resBooks.data}`)
   }
 </script>
