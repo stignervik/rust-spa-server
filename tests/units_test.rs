@@ -8,7 +8,7 @@ use rust_spa_server::units;
 #[test]
 fn units_test() {
     let unit = Unit::new(
-        String::from("1"),
+        1,
         String::from("Unit1"),
         String::from("Unit"),
         String::from("Unit"),

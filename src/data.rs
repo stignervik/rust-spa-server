@@ -75,7 +75,7 @@ pub static UNIT_STORE: Lazy<Mutex<HashMap<u32, Unit>>> = Lazy::new(|| {
         (
             1,
             Unit {
-                id: "1".into(),
+                id: 1,
                 name: "Unit 1".into(),
                 unit_class: "Unit".into(),
                 unit_func: "Unit".into(),
@@ -84,7 +84,7 @@ pub static UNIT_STORE: Lazy<Mutex<HashMap<u32, Unit>>> = Lazy::new(|| {
         (
             2,
             Unit {
-                id: "2".into(),
+                id: 2,
                 name: "Unit 2".into(),
                 unit_class: "Unit".into(),
                 unit_func: "Unit".into(),
@@ -93,7 +93,7 @@ pub static UNIT_STORE: Lazy<Mutex<HashMap<u32, Unit>>> = Lazy::new(|| {
         (
             3,
             Unit {
-                id: "3".into(),
+                id: 3,
                 name: "Unit 3".into(),
                 unit_class: "Unit".into(),
                 unit_func: "Unit".into(),
