@@ -21,3 +21,4 @@ serde = { version = "1.0.136", features = ["derive"] } # A serialization/deseria
 serde_json = "1.0.79" # Serde serializion/deserialization of JSON data.
 parking_lot = "0.12.1"
 axum-sqlite = "0.1.0"
+axum-macros = "0.2.3"

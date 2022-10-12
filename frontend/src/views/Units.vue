@@ -9,6 +9,15 @@
       type="button"
       class="bg-color"
       color="primary"
+      @click="createUnit"
+    >
+      Create Unit
+    </v-btn>
+    <v-btn
+      id="btnTestConnection"
+      type="button"
+      class="bg-color"
+      color="primary"
       @click="fetchUnits"
     >
       Fetch
@@ -29,12 +38,43 @@
   import { ref, reactive} from 'vue';
   import { http } from '../service/rest'
 
+
+  async function createUnit() {
+    console.log("Create unit...");
+    http.post('/create_unit', {
+      name: 'Unit1',
+    })
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log('error...')
+      console.log(error);
+    });
+  }
+
+
   async function fetchUnits() {
 
-    console.log("fetch units ...");
-
+    console.log("fetch units...");
     let resUnits = await http.get('/units');
     console.log(`List units: ${resUnits.data}`)
+
+    console.log("create user...");
+    http.post('/user', {
+      username: 'Fred',
+    })
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+
+
+    console.log("message...");
+    let resMessage = await http.get('/hello/Stig');
+    console.log(`List units: ${resMessage.data.message}`)
 
 
     /*
