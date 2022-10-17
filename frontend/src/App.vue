@@ -44,8 +44,12 @@
   </v-app>
 </template>
 
-<script lang="ts">
-  import { defineComponent } from 'vue'
+<script setup lang="ts">
+  import { defineComponent, onMounted, ref } from 'vue'
+  import Worker from './workers/worker?worker'
+
+  const worker = new Worker()
+  worker.postMessage('')
   // import { useAuthStore } from '../src/stores/auth'
   // import appIcon from './assets/autronica_logo.png'
 
@@ -57,6 +61,18 @@
       location.reload()
     }
     */
+  let counter = ref(0)
+
+  onMounted(() => {
+    worker.onmessage = (e) => {
+        counter = e.data
+        // if (counter % 10 === 0) {
+          console.log("counter: ", counter)
+        // }
+      }
+  })
+
+  /*
   export default defineComponent({
     name: 'App',
 
@@ -69,6 +85,7 @@
       }
     },
   })
+  */
 </script>
 
 

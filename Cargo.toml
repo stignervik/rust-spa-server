@@ -22,3 +22,6 @@ serde_json = "1.0.79" # Serde serializion/deserialization of JSON data.
 parking_lot = "0.12.1"
 axum-sqlite = "0.1.0"
 axum-macros = "0.2.3"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+tracing = "0.1.37"
+serde_with = "2.0.1"

@@ -31,6 +31,15 @@
     >
       Test
     </v-btn>
+    <v-btn
+      id="btnTestConnection"
+      type="button"
+      class="bg-color"
+      color="info"
+      @click="cyclic_fetch"
+    >
+      Cyclic fetch
+    </v-btn>
   </v-container>
 </template>
 
@@ -40,9 +49,10 @@
 
 
   async function createUnit() {
-    console.log("Create unit...");
     http.post('/create_unit', {
       name: 'Unit1',
+      class: "Unit",
+      func: "Unit",
     })
     .then(function (response) {
       console.log(response);
@@ -56,71 +66,26 @@
 
   async function fetchUnits() {
 
-    console.log("fetch units...");
-    let resUnits = await http.get('/units');
-    console.log(`List units: ${resUnits.data}`)
+    if (typeof(Worker) !== "undefined") {
+      // Yes! Web worker support!
+      console.log("web worker support!")
+      // Some code.....
+    } else {
+      // Sorry! No Web Worker support..
+      console.log("No web worker support!")
+    }
 
-    console.log("create user...");
-    http.post('/user', {
-      username: 'Fred',
-    })
-    .then(function (response) {
-      console.log(response);
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
+    let res = await http.get('/units');
+    console.log(`List units: ${res.data}`);
 
+    res = await http.get('/units_len');
+    console.log(`Unit length: ${res.data}`);
 
-    console.log("message...");
-    let resMessage = await http.get('/hello/Stig');
-    console.log(`List units: ${resMessage.data.message}`)
+    // let resMessage = await http.get('/hello/Stig');
+    // console.log(`List units: ${resMessage.data.message}`)
 
 
-    /*
-    let resUnits = await http.get('/units');
-    console.log(`List units: ${resUnits.data}`)
 
-    resUnits = await http.get('/create_unit');
-    console.log(`Add unit: ${resUnits.data}`)
-
-    resUnits = await http.get('/units');
-    console.log(`List units: ${resUnits.data}`)
-
-    let count = await http.get('/units_len');
-    console.log(`Units count: ${count.data}`);
-    */
-    /*
-    let resBooks = await http.get('/booklist');
-    console.log(`List books: ${resBooks.data}`);
-
-    resBooks = await http.get('/books');
-    console.log(`Add a book: ${resBooks.data}`);
-
-    resBooks = await http.get('/booklist');
-    console.log(`List books: ${resBooks.data}`);
-    */
-
-    /*
-    console.log(`base url: ${http.defaults.baseURL}`)
-    const response = await http.get('/get');
-    console.log(`Response: ${response.data}`)
-
-    let resUnits = await http.get('/units');
-    console.log(`List units: ${resUnits.data}`)
-
-    resUnits = await http.get('/create_unit');
-    console.log(`Add unit: ${resUnits.data}`)
-
-    resUnits = await http.get('/units');
-    console.log(`List units: ${resUnits.data}`)
-
-    let resBooks = await http.get('/books');
-    console.log(`Response: ${resBooks.data}`);
-
-    resBooks = await http.get('/booklist');
-    console.log(`Response: ${resBooks.data}`);
-    */
   }
 
   async function test() {
@@ -138,5 +103,12 @@ console.log(`List units: ${resUnits.data}`)
 
 let count = await http.get('/units_len');
 console.log(`Units count: ${count.data}`);
+  }
+
+  async function cyclic_fetch() {
+    while (true) {
+      let count = await http.get('/hello/:stig');
+      setTimeout(() => {console.log(`Units count: ${count.data}`);}, 500);
+    }
   }
 </script>

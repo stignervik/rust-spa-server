@@ -1,10 +1,15 @@
 use crate::unit::unit::Unit;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+// use std::hash::{Hash, Hasher};
+use serde_with::serde_as;
 
 type UnitMap = HashMap<u32, Unit>;
 
-#[derive(Clone)]
+#[serde_as]
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 pub struct Units {
+    #[serde_as(as = "Vec<(_, _)>")]
     unit_list: UnitMap,
 }
 
@@ -30,4 +35,17 @@ impl Units {
     pub fn get_units(&self) -> UnitMap {
         self.unit_list.clone()
     }
+
+    /*
+    pub fn get_last(&self) -> Unit {
+        self.unit_list.
+    */
 }
+
+/*
+impl Hash for Units {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.unit_list.hasher();
+    }
+}
+*/

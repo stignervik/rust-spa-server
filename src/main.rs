@@ -1,3 +1,4 @@
+// use actix_web::error::ErrorInternalServerError;
 //use actix_web::http::StatusCode;
 use anyhow::Result;
 use axum::routing::post;
@@ -7,6 +8,8 @@ use serde_json::json;
 use spa_rs::routing::{get, Router};
 use spa_rs::spa_server_root;
 use spa_rs::SpaServer;
+
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod unit;
 use crate::unit::unit::Unit;
@@ -65,9 +68,15 @@ async fn main() -> Result<()> {
     let mut srv = SpaServer::new();
 
     let unit_map = Arc::new(RwLock::new(Units::new()));
-    // let unit_map: UnitMap = UnitMap::new(Arc::new(RwLock::new(HashMap::new())));
 
-    // let shared_state = Arc::new(RwLock::new(HashMap::new()));
+    // https://medium.com/intelliconnect-engineering/using-axum-framework-to-create-rest-api-part-1-7d434d2c5de4
+    // initialize tracing
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::filter::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "axum_api=debug".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     let router = Router::new()
         .route(
@@ -81,14 +90,18 @@ async fn main() -> Result<()> {
             "/create_unit",
             post({
                 let unit_map = Arc::clone(&unit_map);
-                let unit_payload:Json<CreateUnit> = axum::Json(CreateUnit { name: "test".to_string() });
+                let unit_payload: Json<CreateUnit> = axum::Json(CreateUnit {
+                    name: "test".to_string(),
+                    class: "".to_string(),
+                    func: "".to_string(),
+                });
                 move || create_unit(unit_payload, Arc::clone(&unit_map))
             }),
         )
         // .route("/create_unit", post(create_unit))
         .route("/user", post(create_user))
         .route("/hello/:name", get(json_hello))
-        .route("/units_len", get(units_len))
+        .route("/units_len", get({let unit_map = Arc::clone(&unit_map); move || units_len(Arc::clone(&unit_map))}))
         .route("/booklist", get(get_books))
         .route("/books/:id", get(get_books_id).delete(delete_books_id))
         .route("/add_unit", get(add_unit))
@@ -99,37 +112,77 @@ async fn main() -> Result<()> {
 
     const PORT: u16 = 3000;
     println!("Starting server on port {}", PORT);
+    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
+    tracing::info!("listening on {}", addr);
+
     srv.port(PORT)
         .data(data)
         .static_path("/png", "web") // static file generated in runtime
         .route("/api/v1", router);
-    srv.run(spa_server_root!()).await?;
+    srv.run(spa_server_root!())
+        .await
+        .expect("failed to start server");
 
     Ok(())
 }
 
-/*
-pub async fn create_unit() -> axum::response::Html<String> {
-    println!("Put units...");
-    thread::spawn(move || {
-        let mut unit_store = UNIT_STORE.lock().unwrap();
-        // data.insert(5, unit.clone());
-        let mut len: u32 = unit_store.len() as u32;
-        len = len + 1;
-        println!("unit store: {}", unit_store.len());
-        let unit = Unit::new(
-            len,
-            String::from("Unit1"),
-            String::from("Unit"),
-            String::from("Unit"),
-        );
-        unit_store.insert(unit.id, unit.clone());
+// #[axum_macros::debug_handler]
+pub async fn get_units(
+    unit_map: Arc<RwLock<Units>>,
+//    ) -> axum::response::Json<Unit> {
+) -> impl IntoResponse {
+    let units = unit_map.read().unwrap();
+    if units.length() > 0 {
+        // units.get_units()
+    } else {
+    }
 
-        format!("Put unit: {}", &unit)
+    let unit = Unit::new(
+        1,
+        "Unit".to_string(),
+        "Unit".to_string(),
+        "Unit".to_string(),
+    );
+
+    (StatusCode::CREATED, Json(unit))
+    /*
+    thread::spawn(move || {
+        let units = unit_map.write().unwrap();
+        let map_len = units.length();
+
+        let mut res: String = "List: ".to_string();
+        for (key, value) in units.get_units() {
+            res = res + &*key.to_string() + " " + &*(value.id).to_string() + " - ";
+        }
+
+        format!(
+            "<p>map length: {} res: {}</p>\n",
+            &map_len, &res
+        )
     })
     .join()
     .unwrap()
     .into()
+    */
+}
+
+/*
+impl IntoResponse for Units {
+    fn into_response(self) -> Response<Self::Body> {
+        let body = match self {
+            MyError::SomethingWentWrong => {
+                Body::from("something went wrong")
+            },
+            MyError::SomethingElseWentWrong => {
+                Body::from("something else went wrong")
+            },
+        };
+
+        Response::builder()
+            .status(StatusCode::ACCEPTED)
+            .body(body)
+            .unwrap()
+    }
 }
 */
 
@@ -137,43 +190,29 @@ pub async fn create_unit() -> axum::response::Html<String> {
 #[derive(Deserialize, Clone)]
 struct CreateUnit {
     name: String,
+    class: String,
+    func: String,
 }
 
 async fn create_unit(
-// this argument tells axum to parse the request body
-// as JSON into a `CreateUnit` type
+    // this argument tells axum to parse the request body
+    // as JSON into a `CreateUnit` type
     Json(payload): Json<CreateUnit>,
     unit_map: Arc<RwLock<Units>>,
 ) -> impl IntoResponse {
-
-    // insert your application logic here
-    /*
-    let unit = CreateUnit {
-        name: payload.name,
-    };
-    */
-
     let mut units = unit_map.write().unwrap();
-        let index: u32 = units.length() as u32 + 1;
-        let unit = Unit::new(
-            index,
-            payload.name,
-            String::from("Unit"),
-            String::from("Unit"),
-        );
+    let index: u32 = units.length() as u32 + 1;
+    let unit = Unit::new(index, payload.name, payload.class, payload.func);
 
-        // let json_unit = axum::Json(unit.clone());
+    // let json_unit = axum::Json(unit.clone());
 
-        units.push(unit.clone());
-        // let map_len = units.length();
+    units.push(unit.clone());
+    // let map_len = units.length();
 
     // this will be converted into a JSON response
     // with a status code of `201 Created`
     (StatusCode::CREATED, Json(unit))
 }
-
-
-
 
 async fn json_hello(Path(name): Path<String>) -> impl IntoResponse {
     let greeting = name.as_str();
@@ -211,50 +250,25 @@ async fn create_user(
     (StatusCode::CREATED, Json(user))
 }
 
-// #[axum_macros::debug_handler]
-pub async fn get_units(
-    unit_map: Arc<RwLock<Units>>,
-    // ) -> axum::response::Html<String> {
-) -> axum::extract::Json<String> {
-    thread::spawn(move || {
-        let units = unit_map.write().unwrap();
-        let map_len = units.length();
-
-        let mut res: String = "List: ".to_string();
-        for (key, value) in units.get_units() {
-            res = res + &*key.to_string() + " " + &*(value.id).to_string() + " - ";
-        }
-
-        format!(
-            "<p>map length: {} res: {}</p>\n",
-            &map_len, &res
-        )
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
 pub async fn add_unit() -> axum::response::Html<String> {
     println!("Put units...");
     thread::spawn(move || {
         let unit_store = UNIT_STORE.lock().unwrap();
         let _count = unit_store.len();
         let value = "Hallo";
-        format!("Unit length: yalla {}", &value)
+        format!("Unit length: {}", &value)
     })
     .join()
     .unwrap()
     .into()
 }
 
-pub async fn units_len() -> axum::response::Html<String> {
+pub async fn units_len(unit_map: Arc<RwLock<Units>>) -> axum::response::Html<String> {
     println!("Put units...");
     thread::spawn(move || {
-        let unit_store = UNIT_STORE.lock().unwrap();
-        let count = unit_store.len();
-
-        format!("Unit length: yalla {}", count)
+        let units = unit_map.read().unwrap();
+        let count = units.length();
+        format!("Unit length:{}", count)
     })
     .join()
     .unwrap()
