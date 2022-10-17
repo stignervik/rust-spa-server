@@ -1,10 +1,6 @@
-// use actix_web::error::ErrorInternalServerError;
-//use actix_web::http::StatusCode;
 use anyhow::Result;
 use axum::routing::post;
 use serde_json::json;
-//use axum::response::IntoResponse;
-//use serde_json::json;
 use spa_rs::routing::{get, Router};
 use spa_rs::spa_server_root;
 use spa_rs::SpaServer;
@@ -12,23 +8,14 @@ use spa_rs::SpaServer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod unit;
-use crate::unit::unit::Unit;
+use crate::unit::Unit;
 mod units;
 use crate::units::Units;
 
 mod version;
 
-/// See file book.rs, which defines the `Book` struct.
-mod book;
-use crate::book::Book;
-
-/// See file data.rs, which defines the DATA global variable.
-mod data;
-use crate::data::DATA;
-use crate::data::UNIT_STORE;
-
 mod store;
-// use crate::store::STORE_UNIT;
+use crate::store::Store;
 
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -37,23 +24,6 @@ use std::sync::RwLock;
 use std::thread;
 
 spa_server_root!("frontend/dist"); // specific your SPA dist file location
-
-// type DogMap = Arc<Mutex<HashMap<String, String>>>; // name to breed
-
-// use axum::AddExtensionLayer;
-
-/*
-type SharedState = Arc<RwLock<AppState>>;
-
-#[derive(Default)]
-struct AppState {
-    db: HashMap<String, String>,
-}
-*/
-
-// type UnitMap = Arc<RwLock<HashMap<String, String>>>;
-
-// use axum_macros;
 
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -67,9 +37,10 @@ async fn main() -> Result<()> {
     let data = String::new(); // server context can be acccess by [axum::Extension]
     let mut srv = SpaServer::new();
 
-    let unit_map = Arc::new(RwLock::new(Units::new()));
+    // Fetch the units from store
+    let store = Store::new();
+    let units = store.units();
 
-    // https://medium.com/intelliconnect-engineering/using-axum-framework-to-create-rest-api-part-1-7d434d2c5de4
     // initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::filter::EnvFilter::new(
@@ -82,32 +53,31 @@ async fn main() -> Result<()> {
         .route(
             "/units",
             get({
-                let unit_map = Arc::clone(&unit_map);
-                move || get_units(Arc::clone(&unit_map))
+                let units = Arc::clone(&units);
+                move || get_units(units)
             }),
         )
         .route(
             "/create_unit",
             post({
-                let unit_map = Arc::clone(&unit_map);
                 let unit_payload: Json<CreateUnit> = axum::Json(CreateUnit {
                     name: "test".to_string(),
                     class: "".to_string(),
                     func: "".to_string(),
                 });
-                move || create_unit(unit_payload, Arc::clone(&unit_map))
+                let units = Arc::clone(&units);
+                move || create_unit(unit_payload, Arc::clone(&units))
             }),
         )
         // .route("/create_unit", post(create_unit))
         .route("/user", post(create_user))
         .route("/hello/:name", get(json_hello))
-        .route("/units_len", get({let unit_map = Arc::clone(&unit_map); move || units_len(Arc::clone(&unit_map))}))
-        .route("/booklist", get(get_books))
-        .route("/books/:id", get(get_books_id).delete(delete_books_id))
-        .route("/add_unit", get(add_unit))
         .route(
-            "/books/:id/form",
-            get(get_books_id_form).post(post_books_id_form),
+            "/units_len",
+            get({
+                let units = Arc::clone(&units);
+                move || units_len(Arc::clone(&units))
+            }),
         );
 
     const PORT: u16 = 3000;
@@ -129,7 +99,7 @@ async fn main() -> Result<()> {
 // #[axum_macros::debug_handler]
 pub async fn get_units(
     unit_map: Arc<RwLock<Units>>,
-//    ) -> axum::response::Json<Unit> {
+    //    ) -> axum::response::Json<Unit> {
 ) -> impl IntoResponse {
     let units = unit_map.read().unwrap();
     if units.length() > 0 {
@@ -145,46 +115,7 @@ pub async fn get_units(
     );
 
     (StatusCode::CREATED, Json(unit))
-    /*
-    thread::spawn(move || {
-        let units = unit_map.write().unwrap();
-        let map_len = units.length();
-
-        let mut res: String = "List: ".to_string();
-        for (key, value) in units.get_units() {
-            res = res + &*key.to_string() + " " + &*(value.id).to_string() + " - ";
-        }
-
-        format!(
-            "<p>map length: {} res: {}</p>\n",
-            &map_len, &res
-        )
-    })
-    .join()
-    .unwrap()
-    .into()
-    */
 }
-
-/*
-impl IntoResponse for Units {
-    fn into_response(self) -> Response<Self::Body> {
-        let body = match self {
-            MyError::SomethingWentWrong => {
-                Body::from("something went wrong")
-            },
-            MyError::SomethingElseWentWrong => {
-                Body::from("something else went wrong")
-            },
-        };
-
-        Response::builder()
-            .status(StatusCode::ACCEPTED)
-            .body(body)
-            .unwrap()
-    }
-}
-*/
 
 // the input to our `create_user` handler
 #[derive(Deserialize, Clone)]
@@ -250,163 +181,12 @@ async fn create_user(
     (StatusCode::CREATED, Json(user))
 }
 
-pub async fn add_unit() -> axum::response::Html<String> {
-    println!("Put units...");
-    thread::spawn(move || {
-        let unit_store = UNIT_STORE.lock().unwrap();
-        let _count = unit_store.len();
-        let value = "Hallo";
-        format!("Unit length: {}", &value)
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
 pub async fn units_len(unit_map: Arc<RwLock<Units>>) -> axum::response::Html<String> {
     println!("Put units...");
     thread::spawn(move || {
         let units = unit_map.read().unwrap();
         let count = units.length();
-        format!("Unit length:{}", count)
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// axum handler for "PUT /units" which creates a new unit resource.
-/// This demo shows how axum can extract JSON data into a Unit struct.
-pub async fn put_units(
-    axum::extract::Json(_unit): axum::extract::Json<Unit>,
-) -> axum::response::Html<String> {
-    println!("Put units...");
-    thread::spawn(move || {
-        let mut unit_store = UNIT_STORE.lock().unwrap();
-        // data.insert(5, unit.clone());
-        let mut len: u32 = unit_store.len() as u32;
-        len = len + 1;
-        println!("unit store: {}", unit_store.len());
-        let unit = Unit::new(
-            len,
-            String::from("Unit1"),
-            String::from("Unit"),
-            String::from("Unit"),
-        );
-        unit_store.insert(unit.id, unit.clone());
-
-        format!("Put unit: {}", &unit)
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// To access data, create a thread, spawn it, then get the lock.
-/// When you're done, then join the thread with its parent thread.
-#[allow(dead_code)]
-async fn print_data() {
-    thread::spawn(move || {
-        let data = DATA.lock().unwrap();
-        println!("data: {:?}", data);
-    })
-    .join()
-    .unwrap()
-}
-
-/// axum handler for "GET /books" which responds with a resource page.
-/// This demo uses our DATA; a production app could use a database.
-/// This demo must clone the DATA in order to sort items by title.
-pub async fn get_books() -> axum::response::Html<String> {
-    thread::spawn(move || {
-        let data = DATA.lock().unwrap();
-        let mut books = data.values().collect::<Vec<_>>().clone();
-        books.sort_by(|a, b| a.title.cmp(&b.title));
-        books
-            .iter()
-            .map(|&book| format!("<p>{}</p>\n", &book))
-            .collect::<String>()
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// axum handler for "GET /books/:id" which responds with one resource HTML page.
-/// This demo app uses our crate::DATA variable, and iterates on it to find the id.
-pub async fn get_books_id(
-    axum::extract::Path(id): axum::extract::Path<u32>,
-) -> axum::response::Html<String> {
-    thread::spawn(move || {
-        let data = DATA.lock().unwrap();
-        match data.get(&id) {
-            Some(book) => format!("<p>{}</p>\n", &book),
-            None => format!("<p>Book id {} not found</p>", id),
-        }
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// axum handler for "DELETE /books/:id" which destroys a resource.
-/// This demo extracts an id, then mutates the book in the DATA store.
-pub async fn delete_books_id(
-    axum::extract::Path(id): axum::extract::Path<u32>,
-) -> axum::response::Html<String> {
-    thread::spawn(move || {
-        let mut data = DATA.lock().unwrap();
-        if data.contains_key(&id) {
-            data.remove(&id);
-            format!("Delete book id: {}", &id)
-        } else {
-            format!("Book id not found: {}", &id)
-        }
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// axum handler for "GET /books/:id/form" which responds with a form.
-/// This demo shows how to write a typical HTML form with input fields.
-pub async fn get_books_id_form(
-    axum::extract::Path(id): axum::extract::Path<u32>,
-) -> axum::response::Html<String> {
-    thread::spawn(move || {
-        let data = DATA.lock().unwrap();
-        match data.get(&id) {
-            Some(book) => format!(
-                concat!(
-                    "<form method=\"post\" action=\"/books/{}/form\">\n",
-                    "<input type=\"hidden\" name=\"id\" value=\"{}\">\n",
-                    "<p><input name=\"title\" value=\"{}\"></p>\n",
-                    "<p><input name=\"author\" value=\"{}\"></p>\n",
-                    "<input type=\"submit\" value=\"Save\">\n",
-                    "</form>\n"
-                ),
-                &book.id, &book.id, &book.title, &book.author
-            ),
-            None => format!("<p>Book id {} not found</p>", id),
-        }
-    })
-    .join()
-    .unwrap()
-    .into()
-}
-
-/// axum handler for "POST /books/:id/form" which submits an HTML form.
-/// This demo shows how to do a form submission then update a resource.
-pub async fn post_books_id_form(form: axum::extract::Form<Book>) -> axum::response::Html<String> {
-    let new_book: Book = form.0;
-    thread::spawn(move || {
-        let mut data = DATA.lock().unwrap();
-        if data.contains_key(&new_book.id) {
-            data.insert(new_book.id, new_book.clone());
-            format!("Post book: {}", &new_book)
-        } else {
-            format!("Book id not found: {}", &new_book.id)
-        }
+        format!("Unit length:{}", count, )
     })
     .join()
     .unwrap()

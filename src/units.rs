@@ -1,15 +1,17 @@
-use crate::unit::unit::Unit;
+use crate::unit::Unit;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 // use std::hash::{Hash, Hasher};
-use serde_with::serde_as;
 
+// use serde_with::serde_as;
+
+// #[derive(Debug, Clone)]
 type UnitMap = HashMap<u32, Unit>;
 
-#[serde_as]
+// #[serde_as]
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 pub struct Units {
-    #[serde_as(as = "Vec<(_, _)>")]
+    // #[serde_as(as = "Vec<(_, _)>")]
     unit_list: UnitMap,
 }
 

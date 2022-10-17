@@ -1,5 +1,5 @@
 // use rust_spa_server::Potter;
-use crate::unit::unit::Unit;
+use crate::unit::Unit;
 use rust_spa_server::unit;
 
 use crate::units::Units;
