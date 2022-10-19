@@ -60,13 +60,14 @@ async fn main() -> Result<()> {
         .route(
             "/create_unit",
             post({
-                let unit_payload: Json<CreateUnit> = axum::Json(CreateUnit {
+                /*let unit_payload: Json<CreateUnit> = axum::Json(CreateUnit {
                     name: "test".to_string(),
                     class: "".to_string(),
                     func: "".to_string(),
-                });
+                });*/
                 let units = Arc::clone(&units);
-                move || create_unit(unit_payload, Arc::clone(&units))
+                move |payload: Json<serde_json::Value>| create_unit(payload, Arc::clone(&units))
+                // move || create_unit(unit_payload, Arc::clone(&units))
             }),
         )
         // .route("/create_unit", post(create_unit))
@@ -117,23 +118,20 @@ pub async fn get_units(
     (StatusCode::CREATED, Json(unit))
 }
 
-// the input to our `create_user` handler
-#[derive(Deserialize, Clone)]
-struct CreateUnit {
-    name: String,
-    class: String,
-    func: String,
-}
-
 async fn create_unit(
     // this argument tells axum to parse the request body
     // as JSON into a `CreateUnit` type
-    Json(payload): Json<CreateUnit>,
+    // Json(payload): Json<CreateUnit>,
+    Json(payload): Json<serde_json::Value>,
     unit_map: Arc<RwLock<Units>>,
 ) -> impl IntoResponse {
     let mut units = unit_map.write().unwrap();
     let index: u32 = units.length() as u32 + 1;
-    let unit = Unit::new(index, payload.name, payload.class, payload.func);
+    // let unit = Unit::new(index, payload.name, payload.class, payload.func);
+    // let unit = Unit::new(index, name,"".to_string(), "".to_string());
+    let v:Unit = serde_json::from_str(&payload.to_string()).unwrap();
+
+    let unit = Unit::new(index, v.name,"".to_string(), "".to_string());
 
     // let json_unit = axum::Json(unit.clone());
 

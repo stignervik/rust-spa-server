@@ -67,7 +67,7 @@
     worker.onmessage = (e) => {
         counter = e.data
         // if (counter % 10 === 0) {
-          console.log("counter: ", counter)
+          // console.log("counter: ", counter)
         // }
       }
   })
