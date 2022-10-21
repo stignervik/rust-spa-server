@@ -32,6 +32,8 @@ use serde::{Deserialize, Serialize};
 
 use axum::extract::Path;
 
+use uuid::Uuid;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let data = String::new(); // server context can be acccess by [axum::Extension]
@@ -60,17 +62,17 @@ async fn main() -> Result<()> {
         .route(
             "/create_unit",
             post({
-                /*let unit_payload: Json<CreateUnit> = axum::Json(CreateUnit {
-                    name: "test".to_string(),
-                    class: "".to_string(),
-                    func: "".to_string(),
-                });*/
                 let units = Arc::clone(&units);
                 move |payload: Json<serde_json::Value>| create_unit(payload, Arc::clone(&units))
-                // move || create_unit(unit_payload, Arc::clone(&units))
             }),
         )
-        // .route("/create_unit", post(create_unit))
+        .route(
+            "/delete_unit",
+            post({
+                let units = Arc::clone(&units);
+                move |payload: Json<serde_json::Value>| delete_unit(payload, Arc::clone(&units))
+            }),
+        )
         .route("/user", post(create_user))
         .route("/hello/:name", get(json_hello))
         .route(
@@ -97,6 +99,65 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+async fn create_unit(
+    // this argument tells axum to parse the request body
+    // as JSON into a `CreateUnit` type
+    // Json(payload): Json<CreateUnit>,
+    Json(payload): Json<serde_json::Value>,
+    unit_map: Arc<RwLock<Units>>,
+) -> impl IntoResponse {
+    let mut units = unit_map.write().unwrap();
+    // let _index: u32 = units.length() as u32 + 1;
+
+
+
+    let u: Unit = serde_json::from_str(&payload.to_string()).unwrap();
+
+    // unit_id.hyphenated().to_string(),
+
+    let unit_id = Uuid::new_v4();
+    let unit = Unit::new(
+        unit_id.hyphenated().to_string(),
+        u.name,
+        u.unit_class.to_string(),
+        u.unit_func.to_string(),
+    );
+
+    // let json_unit = axum::Json(unit.clone());
+
+    units.push(unit.clone());
+    // let map_len = units.length();
+
+    // this will be converted into a JSON response
+    // with a status code of `201 Created`
+    (StatusCode::CREATED, Json(unit))
+}
+
+async fn delete_unit(
+    Json(payload): Json<serde_json::Value>,
+    unit_map: Arc<RwLock<Units>>,
+) -> impl IntoResponse {
+    let mut units = unit_map.write().unwrap();
+    let u: Unit = serde_json::from_str(&payload.to_string()).unwrap();
+
+    let unit = Unit::new(
+        u.id,
+        u.name,
+        u.unit_class.to_string(),
+        u.unit_func.to_string(),
+    );
+
+    // let json_unit = axum::Json(unit.clone());
+
+    units.delete_unit(unit.id.clone());
+    // units.push(unit.clone());
+    // let map_len = units.length();
+
+    // this will be converted into a JSON response
+    // with a status code of `201 Created`
+    (StatusCode::CREATED, Json(unit))
+}
+
 // #[axum_macros::debug_handler]
 pub async fn get_units(
     unit_map: Arc<RwLock<Units>>,
@@ -108,38 +169,14 @@ pub async fn get_units(
     } else {
     }
 
+    let unit_id = Uuid::new_v4();
     let unit = Unit::new(
-        1,
+        unit_id.hyphenated().to_string(),
         "Unit".to_string(),
         "Unit".to_string(),
         "Unit".to_string(),
     );
 
-    (StatusCode::CREATED, Json(unit))
-}
-
-async fn create_unit(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUnit` type
-    // Json(payload): Json<CreateUnit>,
-    Json(payload): Json<serde_json::Value>,
-    unit_map: Arc<RwLock<Units>>,
-) -> impl IntoResponse {
-    let mut units = unit_map.write().unwrap();
-    let index: u32 = units.length() as u32 + 1;
-    // let unit = Unit::new(index, payload.name, payload.class, payload.func);
-    // let unit = Unit::new(index, name,"".to_string(), "".to_string());
-    let v:Unit = serde_json::from_str(&payload.to_string()).unwrap();
-
-    let unit = Unit::new(index, v.name,"".to_string(), "".to_string());
-
-    // let json_unit = axum::Json(unit.clone());
-
-    units.push(unit.clone());
-    // let map_len = units.length();
-
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
     (StatusCode::CREATED, Json(unit))
 }
 
@@ -184,7 +221,7 @@ pub async fn units_len(unit_map: Arc<RwLock<Units>>) -> axum::response::Html<Str
     thread::spawn(move || {
         let units = unit_map.read().unwrap();
         let count = units.length();
-        format!("Unit length:{}", count, )
+        format!("Unit length:{}", count,)
     })
     .join()
     .unwrap()

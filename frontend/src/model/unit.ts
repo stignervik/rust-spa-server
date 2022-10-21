@@ -1,5 +1,5 @@
 export interface Unit {
-  id: number;
+  id: string;
   name: string;
   unit_class: string;
   unit_func: string

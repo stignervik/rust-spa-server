@@ -15,7 +15,7 @@
               class="pa-2 mt-2"
               @keyup="filterUnits"
             ></v-text-field>
-            <h1 class="pa-2 mt-2">{{state.units.length.toString()}}</h1>
+            <h1 class="pa-2 mt-2">{{unitStore.size()}}</h1>
             <v-btn @click="addUnit" class="ma-4" color="success" icon="mdi-plus"></v-btn>
           </v-row>
         </v-card>
@@ -24,13 +24,13 @@
       <v-col>
         <v-card class="pa-1 md-2" :elevation="6">
           <v-list>
-            <v-list-item v-for="(item, i) in state.units" :key="i">
+            <v-list-item v-for="(item, i) in unitStore.units" :key="i">
               <v-card class="pa-1 md-2" :elevation="6" color="#E3F2FD">
                 <v-row class="pt-0">
                   <v-text-field id="customer-id"
                     variant="outlined"
                     bg-color="white"
-                    v-model="item.id"
+                    v-model="item.at(1).id"
                     label="Id"
                     prepend-inner-icon="mdi-account"
                     clearable
@@ -41,7 +41,7 @@
                   <v-text-field id="order-id"
                     variant="outlined"
                     bg-color="white"
-                    v-model="item.name"
+                    v-model="item.at(1).name"
                     label="Name"
                     prepend-inner-icon="mdi-order-bool-descending-variant"
                     clearable
@@ -54,7 +54,7 @@
                   <v-text-field id="customer-id"
                     variant="outlined"
                     bg-color="white"
-                    v-model="item.unit_class"
+                    v-model="item.at(1).unit_class"
                     label="Class"
                     prepend-inner-icon="mdi-order-bool-descending-variant"
                     clearable
@@ -65,7 +65,7 @@
                   <v-text-field id="order-id"
                     variant="outlined"
                     bg-color="white"
-                    v-model="item.unit_func"
+                    v-model="item.at(1).unit_func"
                     label="Function"
                     prepend-inner-icon="mdi-order-bool-descending-variant"
                     clearable
@@ -76,7 +76,7 @@
                 </v-row>
                 <v-card-actions class="pa-0">
                   <v-spacer></v-spacer>
-                  <v-btn @click="deleteUnit(item.id)" icon="mdi-trash-can-outline" color="red"></v-btn>
+                  <v-btn @click="deleteUnit(item.at(1).id)" icon="mdi-trash-can-outline" color="red"></v-btn>
                 </v-card-actions>
               </v-card>
             </v-list-item>
@@ -99,20 +99,18 @@
 
   onMounted(() => {
     // Fill in some test data
+    /*
     state.units.push({id: 1, name: 'Unit 1', unit_class: 'Unit', unit_func: 'Unit'});
     state.units.push({id: 2, name: 'Unit 2', unit_class: 'Unit', unit_func: 'Unit'});
     state.units.push({id: 3, name: 'Unit 3', unit_class: 'Unit', unit_func: 'Unit'});
     state.units.push({id: 4, name: 'Unit 4', unit_class: 'Unit', unit_func: 'Unit'});
     state.units.push({id: 5, name: 'Unit 5', unit_class: 'Unit', unit_func: 'Unit'});
-
+    */
 
     // getUnits();
   })
 
-  interface SystemLicense {
-
-  }
-
+  /*
   interface StockKeepingUnit {
     type: string,
     number: number,
@@ -135,16 +133,9 @@
     snumbers: Array<string>,
     skus: Array<StockKeepingUnit>
   }
-
-
-  /*
-  interface Unit {
-    id: number,
-    name: string,
-    unit_class: string,
-    unit_func: string
-  }
   */
+
+
 
 
   const num = ref(0);
@@ -163,72 +154,39 @@
   });
 
   async function addUnit() {
-    // state.units.push({id: state.units.length, name: `Unit ${state.units.length}`, unit_class: "Unit", unit_func: "Unit"});
-    // store.increment();
-    // console.log(`counter: ${store.count}`)
-
-
     console.log(`Create user: `);
-    unitStore.createUnit();
-    console.log(`counter: ${unitStore.size()}`)
-
-    // let resUnits = await http.get('/create_unit');
-    // console.log(`Add unit: ${resUnits.data}`)
-
-
-    let resMessage = await http.get('/hello/Stig1234');
-    console.log(`List units: ${resMessage.data.message}`);
-
-
-
     http.post('/create_unit', {
-      id: 1,
-      name: 'Unit2',
+      id: "0", // dummy id, will be set by the server, optional could be an option, but not for the id
+      name: `Unit ${unitStore.size()}`,
       unit_class: 'Unit',
       unit_func: 'Unit'
     })
     .then(function (response) {
       console.log(response.data);
+      unitStore.push(response.data);
     })
     .catch(function (error) {
       console.log('error...')
       console.log(error);
     });
 
+    console.log(`counter: ${unitStore.size()}`)
+  }
 
-
-
-    /*
-    http.post('/create_unit', {
-      name: 'Unit1',
-      class: "Unit",
-      func: "Unit",
+  function deleteUnit(id: string) {
+    http.post('/delete_unit', {
+      id: id,
+      name: `Unit`,
+      unit_class: 'Unit',
+      unit_func: 'Unit'
     })
     .then(function (response) {
       console.log(response.data);
+      unitStore.deleteUnit(response.data.id);
     })
     .catch(function (error) {
       console.log('error...')
       console.log(error);
-    });
-    */
-
-
-
-
-
-    /*
-    for (let i = 0; i < 1000; i++ ) {
-      state.units.push({id: i, name: "", unit_class: "", unit_func: ""});
-    }
-    */
-  }
-
-  function deleteUnit(id: number) {
-    state.units.forEach((item, index) => {
-      if (item.id === id) {
-          state.units.splice(index, 1);
-      }
     });
   }
 
@@ -238,7 +196,7 @@
     }
 
     state.units = state.units.filter((obj) => {
-      return obj.id === Number(state.search)
+      return obj.id === state.search
     });
 
     if (state.search == "") {

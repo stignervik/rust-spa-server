@@ -6,7 +6,7 @@ use std::collections::HashMap;
 // use serde_with::serde_as;
 
 // #[derive(Debug, Clone)]
-type UnitMap = HashMap<u32, Unit>;
+type UnitMap = HashMap<String, Unit>;
 
 // #[serde_as]
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -24,13 +24,18 @@ impl Units {
 
     #[allow(dead_code)]
     pub fn push(&mut self, unit: Unit) {
-        self.unit_list.insert(unit.id, unit);
+        self.unit_list.insert(unit.id.clone(), unit);
     }
 
     #[allow(dead_code)]
     pub fn length(&self) -> usize {
         let list = self.unit_list.len();
         list
+    }
+
+    #[allow(dead_code)]
+    pub fn delete_unit(&mut self, id: String) {
+        self.unit_list.remove(&id);
     }
 
     #[allow(dead_code)]

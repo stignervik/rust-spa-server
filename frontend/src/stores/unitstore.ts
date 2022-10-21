@@ -10,14 +10,14 @@ export const useUnitStore = defineStore('unit', () => {
     count.value++
   }
 
-  let units = ref(new Map<number, Unit>());
+  let units = ref(new Map<string, Unit>());
 
-  function createUnit() {
-    console.log('units length: ', units.value.values.length);
-    let unit = {id: units.value.size + 1, name: "unit1", unitClass: "Unit", unitFunc: "Unit"};
-    console.log(`unit id:  ${unit.id}`);
+  function push(unit: Unit) {
     units.value.set(unit.id, unit);
-    console.log('units length: ', units.value.size);
+  }
+
+  function deleteUnit(id: string) {
+    units.value.delete(id);
   }
 
   function size() : number {
@@ -25,6 +25,6 @@ export const useUnitStore = defineStore('unit', () => {
     return count;
   }
 
-  return { count, name, doubleCount, increment, createUnit, size }
+  return { count, name, doubleCount, increment, units, push, size, deleteUnit}
 })
 
