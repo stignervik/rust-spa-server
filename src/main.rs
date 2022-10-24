@@ -115,10 +115,14 @@ async fn create_unit(
 
     // unit_id.hyphenated().to_string(),
 
+
+    let index = units.length().to_string();
+    let name = "Unit ".to_string() + &index;
+
     let unit_id = Uuid::new_v4();
     let unit = Unit::new(
         unit_id.hyphenated().to_string(),
-        u.name,
+        name,
         u.unit_class.to_string(),
         u.unit_func.to_string(),
     );
